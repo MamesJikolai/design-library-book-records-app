@@ -22,18 +22,36 @@ class _MainNavigationState extends State<MainNavigation> {
     const HistoryScreen(),
   ];
 
+  final List<String> _titles = [
+    'Dashboard',
+    'Library Books',
+    'Students',
+    'History',
+  ];
+
   @override
   Widget build(BuildContext context) {
     const defaultColor = Colors.greenAccent;
     final themeColor = defaultColor.shade700;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        toolbarHeight: 60.0,
+        title: Text(
+          _titles[_currentIndex],
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: themeColor,
+      ),
+
       body: _screens[_currentIndex],
 
       bottomNavigationBar: BottomAppBar(
         color: themeColor,
-        padding: EdgeInsets.zero, // Removes default Flutter 3 padding
+        padding: EdgeInsets.zero,
         height: 100.0,
         child: SizedBox(
           child: Row(
@@ -73,7 +91,6 @@ class _MainNavigationState extends State<MainNavigation> {
             label,
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.white60,
-              // Mimics the selected/unselected text size behavior
               fontSize: isSelected ? 14.0 : 12.0,
             ),
           ),

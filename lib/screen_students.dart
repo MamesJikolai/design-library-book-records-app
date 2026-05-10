@@ -15,7 +15,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
   @override
   void initState() {
     super.initState();
-    // Listen to changes in the search bar
     _searchController.addListener(() {
       setState(() {
         _searchTerm = _searchController.text.toLowerCase().trim();
@@ -31,135 +30,116 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const appBarColor = Colors.greenAccent;
-
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 60.0,
-        title: const Text(
-          'Students',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    // Return a Column directly instead of a Scaffold
+    return Column(
+      children: [
+        // --- SEARCH BAR SECTION ---
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              labelText: 'Enter student name or number',
+              hintText: 'Search for a student...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  FocusScope.of(context).unfocus(); // Dismiss keyboard
+                },
+              )
+                  : null,
+            ),
           ),
         ),
-        backgroundColor: appBarColor.shade700,
-      ),
-      body: Column(
-        children: [
-          // --- SEARCH BAR SECTION ---
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Enter student name or number',
-                hintText: 'Search for a student...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    FocusScope.of(context).unfocus(); // Dismiss keyboard
-                  },
-                )
-                    : null,
-              ),
-            ),
-          ),
 
-          // --- LIST SECTION ---
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('students')
-                  .orderBy('last_name')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Something went wrong.'));
-                }
+        // --- LIST SECTION ---
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('students')
+                .orderBy('last_name')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(child: Text('Something went wrong.'));
+              }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('No students found.'));
-                }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('No students found.'));
+              }
 
-                // Filter the results locally based on the search term
-                final filteredDocs = snapshot.data!.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+              final filteredDocs = snapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
 
-                  final firstName = (data['first_name'] ?? '').toString().toLowerCase();
-                  final middleName = (data['middle_name'] ?? '').toString().toLowerCase();
-                  final lastName = (data['last_name'] ?? '').toString().toLowerCase();
-                  final studentNumber = (data['student_number'] ?? '').toString().toLowerCase();
+                final firstName = (data['first_name'] ?? '').toString().toLowerCase();
+                final middleName = (data['middle_name'] ?? '').toString().toLowerCase();
+                final lastName = (data['last_name'] ?? '').toString().toLowerCase();
+                final studentNumber = (data['student_number'] ?? '').toString().toLowerCase();
 
-                  final fullName = '$firstName $middleName $lastName';
+                final fullName = '$firstName $middleName $lastName';
 
-                  if (_searchTerm.isEmpty) return true;
+                if (_searchTerm.isEmpty) return true;
 
-                  return fullName.contains(_searchTerm) || studentNumber.contains(_searchTerm);
-                }).toList();
+                return fullName.contains(_searchTerm) || studentNumber.contains(_searchTerm);
+              }).toList();
 
-                if (filteredDocs.isEmpty) {
-                  return const Center(child: Text('No matches found.'));
-                }
+              if (filteredDocs.isEmpty) {
+                return const Center(child: Text('No matches found.'));
+              }
 
-                return ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  children: filteredDocs.map((DocumentSnapshot document) {
-                    Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+              return ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                children: filteredDocs.map((DocumentSnapshot document) {
+                  Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
 
-                    // Extract Data for Display
-                    final firstName = data['first_name'] as String? ?? '';
-                    final middleName = data['middle_name'] as String? ?? '';
-                    final lastName = data['last_name'] as String? ?? '';
+                  final firstName = data['first_name'] as String? ?? '';
+                  final middleName = data['middle_name'] as String? ?? '';
+                  final lastName = data['last_name'] as String? ?? '';
 
-                    final displayName = '$firstName ${middleName.isNotEmpty ? '$middleName ' : ''}$lastName'.trim();
-                    final studentNumber = data['student_number']?.toString() ?? 'N/A';
-                    final grade = data['grade']?.toString() ?? 'N/A';
+                  final displayName = '$firstName ${middleName.isNotEmpty ? '$middleName ' : ''}$lastName'.trim();
+                  final studentNumber = data['student_number']?.toString() ?? 'N/A';
+                  final grade = data['grade']?.toString() ?? 'N/A';
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                      elevation: 2.0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              displayName,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildDetailRow('Student Number', studentNumber),
-                            _buildDetailRow('Grade', grade),
-                            const Divider(height: 20),
-
-                            // Load Borrowed Books from the 'borrows' collection
-                            _buildBorrowedBooksList(document.reference),
-                          ],
-                        ),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    elevation: 2.0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildDetailRow('Student Number', studentNumber),
+                          _buildDetailRow('Grade', grade),
+                          const Divider(height: 20),
+                          _buildBorrowedBooksList(document.reference),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  // Helper widget for text rows
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -173,10 +153,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
     );
   }
 
-  // Helper widget to query and display borrowed books dynamically
   Widget _buildBorrowedBooksList(DocumentReference studentRef) {
     return StreamBuilder<QuerySnapshot>(
-      // Query the 'borrows' collection for active borrows by this specific student
       stream: FirebaseFirestore.instance
           .collection('borrows')
           .where('student_id', isEqualTo: studentRef)
@@ -205,11 +183,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
-            // Loop through each borrow document to get the date and book title
             ...borrowDocs.map((borrowDoc) {
               final data = borrowDoc.data() as Map<String, dynamic>;
 
-              // Clean up the date string (e.g., "2026-05-10T09:04:36" -> "2026-05-10")
               final borrowDateRaw = data['borrow_date']?.toString() ?? 'Unknown Date';
               final borrowDate = borrowDateRaw.contains('T')
                   ? borrowDateRaw.split('T').first
@@ -221,7 +197,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 return Text('• Unknown Book (Borrowed: $borrowDate)');
               }
 
-              // Fetch the actual book document to get the title
               return FutureBuilder<DocumentSnapshot>(
                 future: bookRef.get(),
                 builder: (context, bookSnapshot) {
