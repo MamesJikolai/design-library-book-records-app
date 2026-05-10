@@ -1,0 +1,8 @@
+# Ignore platform-specific boilerplate and generated code
+android/* linguist-vendored
+ios/* linguist-vendored
+web/* linguist-vendored
+test/* linguist-vendored
+
+# Prioritize Dart files in language statistics
+*.dart linguist-detectable=true
