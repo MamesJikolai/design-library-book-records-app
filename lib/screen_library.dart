@@ -35,7 +35,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70.0, // Increase this value to make it taller
+        toolbarHeight: 60.0, // Increase this value to make it taller
         title: const Text(
           'Library Books',
           style: TextStyle(

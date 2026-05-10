@@ -18,7 +18,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70.0,
+        toolbarHeight: 60.0,
         title: const Text(
           'History',
           style: TextStyle(

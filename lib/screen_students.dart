@@ -35,7 +35,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70.0,
+        toolbarHeight: 60.0,
         title: const Text(
           'Students',
           style: TextStyle(

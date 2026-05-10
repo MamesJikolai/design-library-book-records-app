@@ -12,7 +12,7 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70.0,
+        toolbarHeight: 60.0,
         title: const Text(
           'Dashboard',
           style: TextStyle(
