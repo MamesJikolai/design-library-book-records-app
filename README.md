@@ -84,13 +84,12 @@ The application uses three main collections: `books`, `borrows`, and `students`.
 ```json
 {
     "borrows": [
-        "/books/DMY772_4921", // DocumentReference
-        "/books/DMY9780451524935_102" // DocumentReference
+        "/books/DMY9780743273565_101", // DocumentReference
     ],
-    "first_name": "Ryan Ray",
+    "first_name": "Juan",
     "grade": "12",
-    "last_name": "Limbo",
-    "middle_name": "E",
-    "student_number": "2021107403"
+    "last_name": "Dela Cruz",
+    "middle_name": "A",
+    "student_number": "2021101101"
 }
 ```
