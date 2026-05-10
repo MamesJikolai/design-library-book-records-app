@@ -25,59 +25,57 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     const defaultColor = Colors.greenAccent;
+    final themeColor = defaultColor.shade700;
 
     return Scaffold(
-      // Keep this to prevent the nav bar from floating above the keyboard
       resizeToAvoidBottomInset: false,
-
       body: _screens[_currentIndex],
 
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-
-        backgroundColor: defaultColor.shade700,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white60,
-
-        iconSize: 28.0,
-        selectedFontSize: 14.0,
-        unselectedFontSize: 12.0,
-
-        items: const [
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
-              child: Icon(Icons.dashboard),
-            ),
-            label: 'Dashboard',
+      bottomNavigationBar: BottomAppBar(
+        color: themeColor,
+        padding: EdgeInsets.zero, // Removes default Flutter 3 padding
+        height: 100.0,
+        child: SizedBox(
+          child: Row(
+            children: [
+              Expanded(child: _buildNavItem(icon: Icons.dashboard, label: 'Dashboard', index: 0)),
+              Expanded(child: _buildNavItem(icon: Icons.library_books, label: 'Library', index: 1)),
+              Expanded(child: _buildNavItem(icon: Icons.people, label: 'Students', index: 2)),
+              Expanded(child: _buildNavItem(icon: Icons.history, label: 'History', index: 3)),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
-              child: Icon(Icons.library_books),
-            ),
-            label: 'Library',
+        ),
+      ),
+    );
+  }
+
+  // Custom widget to build each navigation tab
+  Widget _buildNavItem({required IconData icon, required String label, required int index}) {
+    final isSelected = _currentIndex == index;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Colors.white : Colors.white60,
+            size: 28.0,
           ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
-              child: Icon(Icons.people),
+          const SizedBox(height: 4.0),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.white60,
+              // Mimics the selected/unselected text size behavior
+              fontSize: isSelected ? 14.0 : 12.0,
             ),
-            label: 'Students',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: 4.0),
-              child: Icon(Icons.history),
-            ),
-            label: 'History',
           ),
         ],
       ),
