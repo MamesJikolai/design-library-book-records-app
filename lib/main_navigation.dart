@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'screen_dashboard.dart';
-import 'screen_library.dart';
-import 'screen_students.dart';
-import 'screen_history.dart';
+import 'screens/screen_dashboard.dart';
+import 'screens/screen_library.dart';
+import 'screens/screen_students.dart';
+import 'screens/screen_history.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});

@@ -2,217 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+// --- REUSABLE UI WRAPPERS ---
+
+class TitledCard extends StatelessWidget {
+  final String title;
+  final Color themeColor;
+  final double height;
+  final Widget child;
+
+  const TitledCard({
+    super.key,
+    required this.title,
+    required this.themeColor,
+    required this.height,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const appBarColor = Colors.greenAccent;
-    final themeColor = appBarColor.shade700;
-
-    // Return the SingleChildScrollView directly instead of a Scaffold
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // --- INVENTORY PIE CHART CARD ---
-          _buildTitledCard(
-            title: 'Inventory Status',
-            themeColor: themeColor,
-            height: 220,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('books').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                }
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return const Text('Error loading chart data.');
-                }
-
-                final books = snapshot.data!.docs;
-                int availableCount = 0;
-                int borrowedCount = 0;
-
-                for (var doc in books) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final isAvailable = data['is_available'] as bool? ?? false;
-                  if (isAvailable) {
-                    availableCount++;
-                  } else {
-                    borrowedCount++;
-                  }
-                }
-
-                if (availableCount == 0 && borrowedCount == 0) {
-                  return const Text('No books in database.');
-                }
-
-                return Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 30,
-                          sections: [
-                            PieChartSectionData(
-                              color: Colors.green.shade400,
-                              value: availableCount.toDouble(),
-                              title: '$availableCount',
-                              radius: 40,
-                              titleStyle: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                            PieChartSectionData(
-                              color: Colors.orange.shade400,
-                              value: borrowedCount.toDouble(),
-                              title: '$borrowedCount',
-                              radius: 40,
-                              titleStyle: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLegendItem(
-                              color: Colors.green.shade400, text: 'Available'),
-                          const SizedBox(height: 8),
-                          _buildLegendItem(
-                              color: Colors.orange.shade400, text: 'Borrowed'),
-                        ],
-                      ),
-                    )
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // --- 2x2 STATS GRID ---
-          Row(
-            children: [
-              Expanded(
-                child: _buildTitledCard(
-                  title: 'Total Books',
-                  themeColor: themeColor,
-                  height: 110,
-                  child: _buildStatStream(
-                    stream: FirebaseFirestore.instance.collection('books').snapshots(),
-                    themeColor: themeColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTitledCard(
-                  title: 'Total Students',
-                  themeColor: themeColor,
-                  height: 110,
-                  child: _buildStatStream(
-                    stream: FirebaseFirestore.instance.collection('students').snapshots(),
-                    themeColor: themeColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTitledCard(
-                  title: 'Active Borrows',
-                  themeColor: themeColor,
-                  height: 110,
-                  child: _buildStatStream(
-                    stream: FirebaseFirestore.instance
-                        .collection('borrows')
-                        .where('status', isEqualTo: 'active')
-                        .snapshots(),
-                    themeColor: themeColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTitledCard(
-                  title: 'Books Available',
-                  themeColor: themeColor,
-                  height: 110,
-                  child: _buildStatStream(
-                    stream: FirebaseFirestore.instance.collection('books').snapshots(),
-                    themeColor: themeColor,
-                    customCount: (docs) {
-                      return docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        return data['is_available'] == true;
-                      }).length;
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // --- INDIVIDUAL LIST / CHART CARDS ---
-          _buildTitledCard(
-            title: '5 Most Popular Books',
-            themeColor: themeColor,
-            height: 220,
-            child: _buildPopularBooks(),
-          ),
-          const SizedBox(height: 16),
-
-          _buildTitledCard(
-            title: 'Top 5 Borrowers',
-            themeColor: themeColor,
-            height: 220,
-            child: _buildTopBorrowers(),
-          ),
-          const SizedBox(height: 16),
-
-          _buildTitledCard(
-            title: 'Borrowing Activity (${DateTime.now().year})',
-            themeColor: themeColor,
-            height: 220,
-            child: _buildBorrowingActivityChart(themeColor),
-          ),
-          const SizedBox(height: 16),
-
-          _buildTitledCard(
-            title: 'Borrows by Grade',
-            themeColor: themeColor,
-            height: 220,
-            child: _buildBorrowsByGradeChart(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- HELPER METHOD FOR TITLED CARDS ---
-  Widget _buildTitledCard({
-    required String title,
-    required Color themeColor,
-    required double height,
-    required Widget child,
-  }) {
     return Container(
       height: height,
       padding: const EdgeInsets.all(12.0),
@@ -245,13 +52,22 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  // --- HELPER METHOD FOR STAT NUMBERS ---
-  Widget _buildStatStream({
-    required Stream<QuerySnapshot> stream,
-    required Color themeColor,
-    int Function(List<QueryDocumentSnapshot>)? customCount,
-  }) {
+class StatStreamWidget extends StatelessWidget {
+  final Stream<QuerySnapshot> stream;
+  final Color themeColor;
+  final int Function(List<QueryDocumentSnapshot>)? customCount;
+
+  const StatStreamWidget({
+    super.key,
+    required this.stream,
+    required this.themeColor,
+    this.customCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
@@ -267,7 +83,7 @@ class DashboardScreen extends StatelessWidget {
         }
 
         final docs = snapshot.data?.docs ?? [];
-        final count = customCount != null ? customCount(docs) : docs.length;
+        final count = customCount != null ? customCount!(docs) : docs.length;
 
         return Text(
           count.toString(),
@@ -280,9 +96,125 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  // --- 1. MOST POPULAR BOOKS ---
-  Widget _buildPopularBooks() {
+class ChartLegendItem extends StatelessWidget {
+  final Color color;
+  final String text;
+
+  const ChartLegendItem({super.key, required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+// --- CHARTS & LISTS ---
+
+class InventoryPieChart extends StatelessWidget {
+  const InventoryPieChart({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('books').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const Text('Error loading chart data.');
+        }
+
+        final books = snapshot.data!.docs;
+        int availableCount = 0;
+        int borrowedCount = 0;
+
+        for (var doc in books) {
+          final data = doc.data() as Map<String, dynamic>;
+          final isAvailable = data['is_available'] as bool? ?? false;
+          if (isAvailable) {
+            availableCount++;
+          } else {
+            borrowedCount++;
+          }
+        }
+
+        if (availableCount == 0 && borrowedCount == 0) {
+          return const Text('No books in database.');
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 30,
+                  sections: [
+                    PieChartSectionData(
+                      color: Colors.green.shade400,
+                      value: availableCount.toDouble(),
+                      title: '$availableCount',
+                      radius: 40,
+                      titleStyle: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    PieChartSectionData(
+                      color: Colors.orange.shade400,
+                      value: borrowedCount.toDouble(),
+                      title: '$borrowedCount',
+                      radius: 40,
+                      titleStyle: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ChartLegendItem(color: Colors.green.shade400, text: 'Available'),
+                  const SizedBox(height: 8),
+                  ChartLegendItem(color: Colors.orange.shade400, text: 'Borrowed'),
+                ],
+              ),
+            )
+          ],
+        );
+      },
+    );
+  }
+}
+
+class PopularBooksList extends StatelessWidget {
+  const PopularBooksList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('borrows').snapshots(),
       builder: (context, snapshot) {
@@ -293,7 +225,6 @@ class DashboardScreen extends StatelessWidget {
           return const Text('No borrow data available.');
         }
 
-        // Count frequency of each book reference
         final Map<String, int> bookCounts = {};
         for (var doc in snapshot.data!.docs) {
           final data = doc.data() as Map<String, dynamic>;
@@ -303,7 +234,6 @@ class DashboardScreen extends StatelessWidget {
           }
         }
 
-        // Sort by highest borrows and take top 5
         final sortedBooks = bookCounts.entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
         final topBooks = sortedBooks.take(5).toList();
@@ -345,9 +275,13 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  // --- 2. TOP BORROWERS ---
-  Widget _buildTopBorrowers() {
+class TopBorrowersList extends StatelessWidget {
+  const TopBorrowersList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('borrows').snapshots(),
       builder: (context, snapshot) {
@@ -358,7 +292,6 @@ class DashboardScreen extends StatelessWidget {
           return const Text('No borrow data available.');
         }
 
-        // Count frequency of each student reference
         final Map<String, int> studentCounts = {};
         for (var doc in snapshot.data!.docs) {
           final data = doc.data() as Map<String, dynamic>;
@@ -368,7 +301,6 @@ class DashboardScreen extends StatelessWidget {
           }
         }
 
-        // Sort by highest borrows and take top 5
         final sortedStudents = studentCounts.entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
         final topStudents = sortedStudents.take(5).toList();
@@ -413,10 +345,15 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  // --- 3. BORROWING ACTIVITY (BAR CHART) ---
-  // --- 3. BORROWING ACTIVITY (BAR CHART) ---
-  Widget _buildBorrowingActivityChart(Color themeColor) {
+class BorrowingActivityChart extends StatelessWidget {
+  final Color themeColor;
+
+  const BorrowingActivityChart({super.key, required this.themeColor});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('borrows').snapshots(),
       builder: (context, snapshot) {
@@ -427,10 +364,7 @@ class DashboardScreen extends StatelessWidget {
           return const Text('No borrow data available.');
         }
 
-        // Initialize 12 months with 0 borrows
         Map<int, int> monthlyBorrows = {for (var i = 1; i <= 12; i++) i: 0};
-
-        // Get the current year as a string (e.g., "2026")
         final currentYearStr = DateTime.now().year.toString();
 
         for (var doc in snapshot.data!.docs) {
@@ -439,11 +373,9 @@ class DashboardScreen extends StatelessWidget {
 
           if (dateStr != null && dateStr.length >= 7) {
             try {
-              // Extract the year (first 4 characters) and month (characters 5 to 7)
               final yearStr = dateStr.substring(0, 4);
               final monthStr = dateStr.substring(5, 7);
 
-              // Only count it if it belongs to the current year
               if (yearStr == currentYearStr) {
                 final month = int.parse(monthStr);
                 if (monthlyBorrows.containsKey(month)) {
@@ -513,9 +445,13 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
+}
 
-  // --- 4. BORROWS BY GRADE (PIE CHART) ---
-  Widget _buildBorrowsByGradeChart() {
+class BorrowsByGradeChart extends StatelessWidget {
+  const BorrowsByGradeChart({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('students').snapshots(),
       builder: (context, studentSnap) {
@@ -615,7 +551,7 @@ class DashboardScreen extends StatelessWidget {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 6.0),
-                          child: _buildLegendItem(color: color, text: gradeLabel),
+                          child: ChartLegendItem(color: color, text: gradeLabel),
                         );
                       }).toList(),
                     )
@@ -625,27 +561,6 @@ class DashboardScreen extends StatelessWidget {
           },
         );
       },
-    );
-  }
-
-  // --- HELPER METHOD FOR CHART LEGENDS ---
-  Widget _buildLegendItem({required Color color, required String text}) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }
