@@ -95,6 +95,25 @@ class HistoryCard extends StatelessWidget {
 
     final status = data['status']?.toString() ?? 'unknown';
 
+    // --- OVERDUE LOGIC START ---
+    DateTime? dueDate;
+    if (data['due_date'] != null) {
+      if (data['due_date'] is Timestamp) {
+        dueDate = (data['due_date'] as Timestamp).toDate();
+      } else if (data['due_date'] is String) {
+        dueDate = DateTime.tryParse(data['due_date']);
+      }
+    }
+
+    bool isOverdue = false;
+    // Check if the book is still active AND the current date is past the due date
+    if (status == 'active' && dueDate != null) {
+      if (DateTime.now().isAfter(dueDate)) {
+        isOverdue = true;
+      }
+    }
+    // --- OVERDUE LOGIC END ---
+
     final borrowDate = _formatDate(data['borrow_date']);
     final returnDate = status == 'active'
         ? 'Not returned'
@@ -117,12 +136,27 @@ class HistoryCard extends StatelessWidget {
               studentName = detailsSnapshot.data?['student'] ?? 'Unknown Student';
             }
 
+            // --- APPLY OVERDUE STYLING ---
+            // We only append "(Overdue)" if it has finished loading to prevent "Loading... (Overdue)"
+            String displayTitle = bookTitle;
+            Color? titleColor;
+
+            if (isOverdue && detailsSnapshot.connectionState == ConnectionState.done) {
+              displayTitle = '$bookTitle (Overdue)';
+              titleColor = Colors.red;
+            }
+            // -----------------------------
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bookTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  displayTitle,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: titleColor, // Will be red if overdue, otherwise default black
+                  ),
                 ),
                 const SizedBox(height: 8),
                 HistoryDetailRow(label: 'Borrower', value: studentName),
@@ -167,6 +201,26 @@ class HistoryListWidget extends StatelessWidget {
     required this.selectedFilter,
   });
 
+  // Helper function to evaluate if a document is overdue
+  bool _isOverdue(Map<String, dynamic> data) {
+    final status = data['status']?.toString() ?? 'unknown';
+    if (status != 'active') return false; // Only active items can be overdue
+
+    DateTime? dueDate;
+    if (data['due_date'] != null) {
+      if (data['due_date'] is Timestamp) {
+        dueDate = (data['due_date'] as Timestamp).toDate();
+      } else if (data['due_date'] is String) {
+        dueDate = DateTime.tryParse(data['due_date']);
+      }
+    }
+
+    if (dueDate != null && DateTime.now().isAfter(dueDate)) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (snapshot.hasError) {
@@ -181,15 +235,31 @@ class HistoryListWidget extends StatelessWidget {
       return const Center(child: Text('No history found.'));
     }
 
-    // Filter the results locally based on the selected chip
+    // 1. Filter the results locally based on the selected chip
     final borrowDocs = snapshot.data!.docs.where((doc) {
-      if (selectedFilter == 'all') return true; // Show everything
+      if (selectedFilter == 'all') return true;
 
       final data = doc.data() as Map<String, dynamic>;
       final status = data['status']?.toString() ?? 'unknown';
 
-      return status == selectedFilter; // Match 'active' or 'returned'
+      return status == selectedFilter;
     }).toList();
+
+    // 2. Sort the list to pin overdue items to the top
+    borrowDocs.sort((a, b) {
+      final dataA = a.data() as Map<String, dynamic>;
+      final dataB = b.data() as Map<String, dynamic>;
+
+      final isOverdueA = _isOverdue(dataA);
+      final isOverdueB = _isOverdue(dataB);
+
+      if (isOverdueA && !isOverdueB) return -1; // 'a' moves to the top
+      if (!isOverdueA && isOverdueB) return 1;  // 'b' moves to the top
+
+      // If both are overdue, or neither are overdue, they maintain their
+      // original order (which is 'borrow_date' descending from Firestore)
+      return 0;
+    });
 
     if (borrowDocs.isEmpty) {
       return Center(
